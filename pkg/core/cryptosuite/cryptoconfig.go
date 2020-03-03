@@ -115,3 +115,28 @@ func (c *Config) KeyStorePath() string {
 	keystorePath := pathvar.Subst(c.backend.GetString("client.credentialStore.cryptoStore.path"))
 	return filepath.Join(keystorePath, "keystore")
 }
+
+//SecurityHTTPServer will be set only if provider is PKCS11
+func (c *Config) SecurityHTTPServer() string {
+	return c.backend.GetString("client.BCCSP.security.httpserver")
+}
+
+//SecurityProtocol will be set only if provider is PKCS11
+func (c *Config) SecurityProtocol() string {
+	return c.backend.GetString("client.BCCSP.security.protocol")
+}
+
+//SecurityCertID will be set only if provider is PKCS11
+func (c *Config) SecurityCertID() int {
+	return c.backend.GetInt("client.BCCSP.security.certid")
+}
+
+//SecurityAppKey will be set only if provider is PKCS11
+func (c *Config) SecurityAppKey() string {
+	return c.backend.GetString("client.BCCSP.security.appkey")
+}
+
+//SecurityAppSecret will be set only if provider is PKCS11
+func (c *Config) SecurityAppSecret() string {
+	return c.backend.GetString("client.BCCSP.security.appsecret")
+}

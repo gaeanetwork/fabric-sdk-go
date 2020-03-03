@@ -225,6 +225,31 @@ func (c *MockConfig) KeyStorePath() string {
 	return "/tmp/fabsdkgo_test"
 }
 
+// SecurityHTTPServer ...
+func (c *MockConfig) SecurityHTTPServer() string {
+	return "127.0.0.1"
+}
+
+// SecurityProtocol ...
+func (c *MockConfig) SecurityProtocol() string {
+	return "http"
+}
+
+// SecurityCertID ...
+func (c *MockConfig) SecurityCertID() int {
+	return 109
+}
+
+// SecurityAppKey ...
+func (c *MockConfig) SecurityAppKey() string {
+	return "456"
+}
+
+// SecurityAppSecret ...
+func (c *MockConfig) SecurityAppSecret() string {
+	return "123"
+}
+
 // CredentialStorePath ...
 func (c *MockConfig) CredentialStorePath() string {
 	return "/tmp/userstore"

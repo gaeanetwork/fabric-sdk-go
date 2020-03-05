@@ -62,6 +62,75 @@ func (mr *MockCryptoSuiteConfigMockRecorder) KeyStorePath() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KeyStorePath", reflect.TypeOf((*MockCryptoSuiteConfig)(nil).KeyStorePath))
 }
 
+// ===server start===
+// KeyStorePath mocks base method
+func (m *MockCryptoSuiteConfig) SecurityHTTPServer() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SecurityHTTPServer")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// KeyStorePath indicates an expected call of KeyStorePath
+func (mr *MockCryptoSuiteConfigMockRecorder) SecurityHTTPServer() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecurityHTTPServer", reflect.TypeOf((*MockCryptoSuiteConfig)(nil).SecurityHTTPServer))
+}
+
+func (m *MockCryptoSuiteConfig) SecurityProtocol() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SecurityProtocol")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// KeyStorePath indicates an expected call of KeyStorePath
+func (mr *MockCryptoSuiteConfigMockRecorder) SecurityProtocol() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecurityProtocol", reflect.TypeOf((*MockCryptoSuiteConfig)(nil).SecurityProtocol))
+}
+
+func (m *MockCryptoSuiteConfig) SecurityCertID() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SecurityCertID")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// SecurityCertID indicates an expected call of KeyStorePath
+func (mr *MockCryptoSuiteConfigMockRecorder) SecurityCertID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecurityHTTPServer", reflect.TypeOf((*MockCryptoSuiteConfig)(nil).SecurityCertID))
+}
+
+func (m *MockCryptoSuiteConfig) SecurityAppKey() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SecurityAppKey")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// KeyStorePath indicates an expected call of KeyStorePath
+func (mr *MockCryptoSuiteConfigMockRecorder) SecurityAppKey() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecurityAppKey", reflect.TypeOf((*MockCryptoSuiteConfig)(nil).SecurityAppKey))
+}
+
+func (m *MockCryptoSuiteConfig) SecurityAppSecret() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SecurityAppSecret")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// KeyStorePath indicates an expected call of KeyStorePath
+func (mr *MockCryptoSuiteConfigMockRecorder) SecurityAppSecret() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecurityAppSecret", reflect.TypeOf((*MockCryptoSuiteConfig)(nil).SecurityAppSecret))
+}
+
+// ===server end===
+
 // SecurityAlgorithm mocks base method
 func (m *MockCryptoSuiteConfig) SecurityAlgorithm() string {
 	m.ctrl.T.Helper()

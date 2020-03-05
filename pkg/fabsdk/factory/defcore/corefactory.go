@@ -10,13 +10,11 @@ import (
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/logging"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/core"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
+	"github.com/hyperledger/fabric-sdk-go/pkg/core/cryptosuite/bccsp/multisuite"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/logging/api"
-
-	cryptosuiteimpl "github.com/hyperledger/fabric-sdk-go/pkg/core/cryptosuite/bccsp/sw"
+	"github.com/hyperledger/fabric-sdk-go/pkg/core/logging/modlog"
 	signingMgr "github.com/hyperledger/fabric-sdk-go/pkg/fab/signingmgr"
 	"github.com/hyperledger/fabric-sdk-go/pkg/fabsdk/provider/fabpvdr"
-
-	"github.com/hyperledger/fabric-sdk-go/pkg/core/logging/modlog"
 )
 
 var logger = logging.NewLogger("fabsdk")
@@ -33,10 +31,7 @@ func NewProviderFactory() *ProviderFactory {
 
 // CreateCryptoSuiteProvider returns a new default implementation of BCCSP
 func (f *ProviderFactory) CreateCryptoSuiteProvider(config core.CryptoSuiteConfig) (core.CryptoSuite, error) {
-	if config.SecurityProvider() != "sw" {
-		logger.Warnf("default provider factory doesn't support '%s' crypto provider", config.SecurityProvider())
-	}
-	cryptoSuiteProvider, err := cryptosuiteimpl.GetSuiteByConfig(config)
+	cryptoSuiteProvider, err := multisuite.GetSuiteByConfig(config)
 	return cryptoSuiteProvider, err
 }
 

@@ -118,25 +118,25 @@ func (c *Config) KeyStorePath() string {
 
 //SecurityHTTPServer will be set only if provider is PKCS11
 func (c *Config) SecurityHTTPServer() string {
-	return c.backend.GetString("client.BCCSP.security.httpserver")
+	return c.backend.GetString("client.BCCSP.security.hbca.httpserver")
 }
 
 //SecurityProtocol will be set only if provider is PKCS11
 func (c *Config) SecurityProtocol() string {
-	return c.backend.GetString("client.BCCSP.security.protocol")
+	return c.backend.GetString("client.BCCSP.security.hbca.protocol")
 }
 
 //SecurityCertID will be set only if provider is PKCS11
 func (c *Config) SecurityCertID() int {
-	return c.backend.GetInt("client.BCCSP.security.certid")
+	return c.backend.GetInt("client.BCCSP.security.hbca.certid")
 }
 
 //SecurityAppKey will be set only if provider is PKCS11
 func (c *Config) SecurityAppKey() string {
-	return c.backend.GetString("client.BCCSP.security.appkey")
+	return c.backend.GetString("client.BCCSP.security.hbca.appkey")
 }
 
 //SecurityAppSecret will be set only if provider is PKCS11
 func (c *Config) SecurityAppSecret() string {
-	return c.backend.GetString("client.BCCSP.security.appsecret")
+	return c.backend.GetString("client.BCCSP.security.hbca.appsecret")
 }

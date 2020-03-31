@@ -17,9 +17,8 @@ type CryptoSuiteConfig interface {
 	SecurityProviderPin() string
 	SecurityProviderLabel() string
 	KeyStorePath() string
-	SecurityHTTPServer() string
-	SecurityProtocol() string
-	SecurityCertID() int
+	SecurityWSDLServer() string
+	SecurityCertID() string
 	SecurityAppKey() string
 	SecurityAppSecret() string
 }

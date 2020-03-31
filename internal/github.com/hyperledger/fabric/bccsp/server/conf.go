@@ -75,10 +75,11 @@ type Opts struct {
 
 // HBCAOpts hbca opts
 type HBCAOpts struct {
-	// PKCS11 options
-	HTTPServer string `mapstructure:"httpserver" json:"httpserver"`
-	Protocol   string `mapstructure:"protocol" json:"protocol"`
-	CertID     int64  `mapstructure:"certID" json:"certID"`
-	AppKey     string `mapstructure:"appKey" json:"appKey"`
-	AppSecret  string `mapstructure:"appSecret" json:"appSecret"`
+	WSDLServer string `mapstructure:"wsdlServer" json:"wsdlServer"`
+	// TODO: delete this field after compeleted the import ca
+	CertID      string `mapstructure:"certID" json:"certID"`
+	AppKey      string `mapstructure:"appKey" json:"appKey"`
+	AppSecret   string `mapstructure:"appSecret" json:"appSecret"`
+	Namespace   string `mapstructure:"namespace" json:"namespace"`
+	ContentType string `mapstructure:"contentType" json:"contentType"`
 }

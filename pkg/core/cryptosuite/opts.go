@@ -23,8 +23,7 @@ type CryptoConfigOptions struct {
 	securityProviderPin
 	securityProviderLabel
 	keyStorePath
-	securityHTTPServer
-	securityProtocol
+	securityWSDLServer
 	securityCertID
 	securityAppKey
 	securityAppSecret
@@ -80,18 +79,13 @@ type keyStorePath interface {
 }
 
 // keyStorePath interface allows to uniquely override CryptoConfig interface's KeyStorePath() function
-type securityHTTPServer interface {
-	SecurityHTTPServer() string
-}
-
-// SecurityProtocol interface allows to uniquely override CryptoConfig interface's KeyStorePath() function
-type securityProtocol interface {
-	SecurityProtocol() string
+type securityWSDLServer interface {
+	SecurityWSDLServer() string
 }
 
 // SecurityCertID interface allows to uniquely override CryptoConfig interface's KeyStorePath() function
 type securityCertID interface {
-	SecurityCertID() int
+	SecurityCertID() string
 }
 
 // SecurityAppKey interface allows to uniquely override CryptoConfig interface's KeyStorePath() function
@@ -134,8 +128,7 @@ func UpdateMissingOptsWithDefaultConfig(c *CryptoConfigOptions, d core.CryptoSui
 	s.set(c.securityProviderPin, nil, func() { c.securityProviderPin = d })
 	s.set(c.securityProviderLabel, nil, func() { c.securityProviderLabel = d })
 	s.set(c.keyStorePath, nil, func() { c.keyStorePath = d })
-	s.set(c.securityHTTPServer, nil, func() { c.securityHTTPServer = d })
-	s.set(c.securityProtocol, nil, func() { c.securityProtocol = d })
+	s.set(c.securityWSDLServer, nil, func() { c.securityWSDLServer = d })
 	s.set(c.securityCertID, nil, func() { c.securityCertID = d })
 	s.set(c.securityAppKey, nil, func() { c.securityAppKey = d })
 	s.set(c.securityAppSecret, nil, func() { c.securityAppSecret = d })
@@ -162,8 +155,7 @@ func setCryptoConfigWithOptionInterface(c *CryptoConfigOptions, o interface{}) e
 	s.set(c.securityProviderLabel, func() bool { _, ok := o.(securityProviderLabel); return ok }, func() { c.securityProviderLabel = o.(securityProviderLabel) })
 	s.set(c.keyStorePath, func() bool { _, ok := o.(keyStorePath); return ok }, func() { c.keyStorePath = o.(keyStorePath) })
 
-	s.set(c.securityHTTPServer, func() bool { _, ok := o.(securityHTTPServer); return ok }, func() { c.securityHTTPServer = o.(securityHTTPServer) })
-	s.set(c.securityProtocol, func() bool { _, ok := o.(securityProtocol); return ok }, func() { c.securityProtocol = o.(securityProtocol) })
+	s.set(c.securityWSDLServer, func() bool { _, ok := o.(securityWSDLServer); return ok }, func() { c.securityWSDLServer = o.(securityWSDLServer) })
 	s.set(c.securityCertID, func() bool { _, ok := o.(securityCertID); return ok }, func() { c.securityCertID = o.(securityCertID) })
 	s.set(c.securityAppKey, func() bool { _, ok := o.(securityAppKey); return ok }, func() { c.securityAppKey = o.(securityAppKey) })
 	s.set(c.securityAppSecret, func() bool { _, ok := o.(securityAppSecret); return ok }, func() { c.securityAppSecret = o.(securityAppSecret) })

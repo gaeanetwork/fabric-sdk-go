@@ -6,57 +6,103 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/fiorix/wsdl2go/soap"
+	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp/server/wsdl"
 	"github.com/pkg/errors"
 	"github.com/tjfoc/gmsm/sm2"
 )
 
 var (
+	// cacheCertBase64 cache the cert base64
 	cacheCertBase64 = make(map[string]string)
 
-	getCertBase64Lock sync.Mutex
+	// certBase64Lock use lock when get the certbase64 of hbca
+	certBase64Lock sync.Mutex
+
+	// wsdlServer wsdl server
+	wsdlServer wsdl.HbcaService
+
+	// hbcaServerInitOnce only init once
+	hbcaServerInitOnce sync.Once
 )
 
-type hbcaSignData struct {
-	SignData  []byte
-	CertID    int64
-	DigestAlg string
-}
+// NewHbcaWSDL new a hbca server, first arg is Namespace, second is ContentType
+func NewHbcaWSDL(WSDLServer string, args ...string) wsdl.HbcaService {
+	if wsdlServer == nil {
+		hbcaServerInitOnce.Do(func() {
+			cli := &soap.Client{
+				URL:         WSDLServer,
+				Namespace:   "http://jws.back.hb.org.cn/",
+				ContentType: "text/xml;charset=utf-8",
+			}
 
-func (csp *HuBeiCa) getCertBase64() (string, error) {
-	return getCertBase64(fmt.Sprint(csp.CertID), csp.AppKey, csp.AppSecret, csp.Protocol, csp.HTTPServer)
-}
+			if len(args) > 0 && len(args[0]) > 0 {
+				cli.Namespace = args[0]
+			}
 
-func getCertBase64(certID, appKey, appSecret, protocol, HTTPServer string) (string, error) {
-	getCertBase64Lock.Lock()
-	defer getCertBase64Lock.Unlock()
+			if len(args) > 0 && len(args[1]) > 0 {
+				cli.ContentType = args[1]
+			}
 
-	certStr, ok := cacheCertBase64[certID]
-	if ok {
-		return certStr, nil
+			wsdlServer = wsdl.NewHbcaService(cli)
+		})
 	}
+	return wsdlServer
+}
 
-	mapData := make(map[string]interface{})
-	mapData["id"] = certID
-	mapData["appKey"] = appKey
-	mapData["appSecret"] = appSecret
-
-	url := fmt.Sprintf("%s://%s/hbcaDSS/GetSignCertById.do", protocol, HTTPServer)
-	res, err := httpRequestJSON("POST", url, mapData)
-	if err != nil {
-		return "", errors.Wrap(err, "httpRequestJSON(\"POST\", url, mapData)")
+// HandlerWSDLResponse handler the wsdl response
+func HandlerWSDLResponse(response string) (string, error) {
+	res := &ResponseWSDL{}
+	if err := json.Unmarshal([]byte(response), res); err != nil {
+		return "", errors.Wrap(err, "json.Unmarshal([]byte(response),res)")
 	}
 
 	if res.Code != "0" {
 		return "", errors.New(res.Message)
 	}
 
-	cacheCertBase64[certID] = res.Message
-
-	return res.Message, nil
+	return res.Data, nil
 }
 
-func (csp *HuBeiCa) getCertInfo() (*sm2.Certificate, error) {
-	certBase64, err := csp.getCertBase64()
+// GetCertBase64 get the cert base64 format
+func (csp *HuBeiCa) GetCertBase64(certID string) (string, error) {
+	return getCertBase64(certID, csp.opt.AppKey, csp.opt.AppSecret, csp.opt.WSDLServer)
+}
+
+func getCertBase64(certID, appKey, appSecret, WSDLServer string) (string, error) {
+	certBase64Lock.Lock()
+	defer certBase64Lock.Unlock()
+
+	certStr, ok := cacheCertBase64[certID]
+	if ok {
+		return certStr, nil
+	}
+
+	s := NewHbcaWSDL(WSDLServer)
+
+	certEx := &wsdl.GetServerCertEx{
+		AppKey:    &appKey,
+		AppSecret: &appSecret,
+		CertId:    &certID,
+	}
+
+	res, err := s.GetServerCertEx(certEx)
+	if err != nil {
+		return "", errors.Wrap(err, "s.GetServerCertEx(certEx)")
+	}
+
+	response, err := HandlerWSDLResponse(*res.Return)
+	if err != nil {
+		return "", errors.Wrap(err, "HandlerWSDLResponse(*res.Return)")
+	}
+
+	cacheCertBase64[certID] = response
+	return response, nil
+}
+
+// GetCertInfo get cert info
+func (csp *HuBeiCa) GetCertInfo(certID string) (*sm2.Certificate, error) {
+	certBase64, err := csp.GetCertBase64(certID)
 	if err != nil {
 		return nil, errors.Wrap(err, "csp.getCertBase64()")
 	}
@@ -73,8 +119,9 @@ func (csp *HuBeiCa) getCertInfo() (*sm2.Certificate, error) {
 	return cert, nil
 }
 
-func (csp *HuBeiCa) getPublickey() (*sm2.PublicKey, error) {
-	cert, err := csp.getCertInfo()
+// GetPublickey get public key
+func (csp *HuBeiCa) GetPublickey(certID string) (*sm2.PublicKey, error) {
+	cert, err := csp.GetCertInfo(certID)
 	if err != nil {
 		return nil, errors.Wrap(err, "sm2.ParseCertificate(publicKeyBytes)")
 	}
@@ -91,161 +138,81 @@ func (csp *HuBeiCa) getPublickey() (*sm2.PublicKey, error) {
 	return pk, nil
 }
 
-func (csp *HuBeiCa) getCertTheme() (string, error) {
-	certBase64, err := csp.getCertBase64()
+// GetEncCert get enc cert
+func (csp *HuBeiCa) GetEncCert(certID string) (string, error) {
+	s := NewHbcaWSDL(csp.opt.WSDLServer, csp.opt.Namespace, csp.opt.ContentType)
+
+	encCert := &wsdl.GetEncCert{
+		AppKey:    &csp.opt.AppKey,
+		AppSecret: &csp.opt.AppSecret,
+		CertId:    &certID,
+	}
+
+	res, err := s.GetEncCert(encCert)
 	if err != nil {
-		return "", errors.Wrap(err, "csp.getCertBase64()")
+		return "", errors.Wrap(err, "s.GetEncCert(encCert)")
 	}
 
-	mapData := make(map[string]interface{})
-	mapData["type"] = 1
-	mapData["certB64"] = certBase64
-	mapData["appKey"] = csp.AppKey
-	mapData["appSecret"] = csp.AppSecret
-
-	url := fmt.Sprintf("%s://%s/hbcaDSS/GetCertInfo.do", csp.Protocol, csp.HTTPServer)
-	res, err := httpRequestJSON("POST", url, mapData)
+	response, err := HandlerWSDLResponse(*res.Return)
 	if err != nil {
-		return "", errors.Wrap(err, "httpRequestJSON(\"POST\", url, mapData)")
+		return "", errors.Wrap(err, "HandlerWSDLResponse(*res.Return)")
 	}
 
-	if res.Code != "0" {
-		return "", errors.New(res.Message)
-	}
-
-	return res.Message, nil
+	return response, nil
 }
 
-func (csp *HuBeiCa) getCertSerialNumber() (string, error) {
-	certBase64, err := csp.getCertBase64()
+// GetSignCert get sign cert
+func (csp *HuBeiCa) GetSignCert(certID string) (string, error) {
+	s := NewHbcaWSDL(csp.opt.WSDLServer, csp.opt.Namespace, csp.opt.ContentType)
+
+	certEx := &wsdl.GetSignCert{
+		AppKey:    &csp.opt.AppKey,
+		AppSecret: &csp.opt.AppSecret,
+		CertId:    &certID,
+	}
+
+	res, err := s.GetSignCert(certEx)
 	if err != nil {
-		return "", errors.Wrap(err, "csp.getCertBase64()")
+		return "", errors.Wrap(err, "s.GetSignCert(certEx)")
 	}
 
-	mapData := make(map[string]interface{})
-	mapData["type"] = 2
-	mapData["certB64"] = certBase64
-	mapData["appKey"] = csp.AppKey
-	mapData["appSecret"] = csp.AppSecret
-
-	url := fmt.Sprintf("%s://%s/hbcaDSS/GetCertInfo.do", csp.Protocol, csp.HTTPServer)
-	res, err := httpRequestJSON("POST", url, mapData)
+	response, err := HandlerWSDLResponse(*res.Return)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to request public")
+		return "", errors.Wrap(err, "HandlerWSDLResponse(*res.Return)")
 	}
 
-	if res.Code != "0" {
-		return "", errors.New(res.Message)
-	}
-
-	return res.Message, nil
+	return response, nil
 }
 
-func (csp *HuBeiCa) getCertIssuerSubject() (string, error) {
-	certBase64, err := csp.getCertBase64()
+// SignData sign data
+func (csp *HuBeiCa) SignData(certID string, input []byte) ([]byte, error) {
+	s := NewHbcaWSDL(csp.opt.WSDLServer, csp.opt.Namespace, csp.opt.ContentType)
+	oriData := base64.StdEncoding.EncodeToString(input)
+	data := &wsdl.SignDataEx{
+		AppKey:    &csp.opt.AppKey,
+		AppSecret: &csp.opt.AppSecret,
+		CertId:    &csp.opt.CertID,
+		OriData:   &oriData,
+	}
+
+	res, err := s.SignDataEx(data)
 	if err != nil {
-		return "", errors.Wrap(err, "csp.getCertBase64()")
+		return nil, errors.Wrap(err, "s.SignDataEx(data)")
 	}
 
-	mapData := make(map[string]interface{})
-	mapData["type"] = 3
-	mapData["certB64"] = certBase64
-	mapData["appKey"] = csp.AppKey
-	mapData["appSecret"] = csp.AppSecret
-
-	url := fmt.Sprintf("%s://%s/hbcaDSS/GetCertInfo.do", csp.Protocol, csp.HTTPServer)
-	res, err := httpRequestJSON("POST", url, mapData)
+	response, err := HandlerWSDLResponse(*res.Return)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to request public")
+		return nil, errors.Wrap(err, "HandlerWSDLResponse(*res.Return)")
 	}
 
-	if res.Code != "0" {
-		return "", errors.New(res.Message)
-	}
-
-	return res.Message, nil
-}
-
-func (csp *HuBeiCa) getCertEntity() (string, error) {
-	certBase64, err := csp.getCertBase64()
+	output, err := base64.StdEncoding.DecodeString(response)
 	if err != nil {
-		return "", errors.Wrap(err, "csp.getCertBase64()")
-	}
-
-	mapData := make(map[string]interface{})
-	mapData["type"] = 14
-	mapData["certB64"] = certBase64
-	mapData["appKey"] = csp.AppKey
-	mapData["appSecret"] = csp.AppSecret
-
-	url := fmt.Sprintf("%s://%s/hbcaDSS/GetCertInfo.do", csp.Protocol, csp.HTTPServer)
-	res, err := httpRequestJSON("POST", url, mapData)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to request public")
-	}
-
-	if res.Code != "0" {
-		return "", errors.New(res.Message)
-	}
-
-	return res.Message, nil
-}
-
-func (csp *HuBeiCa) validateCert() (bool, error) {
-	certBase64, err := csp.getCertBase64()
-	if err != nil {
-		return false, errors.Wrap(err, "csp.getCertBase64()")
-	}
-
-	mapData := make(map[string]interface{})
-	mapData["certB64"] = certBase64
-	mapData["appKey"] = csp.AppKey
-	mapData["appSecret"] = csp.AppSecret
-
-	url := fmt.Sprintf("%s://%s/hbcaDSS/ValidateCert.do", csp.Protocol, csp.HTTPServer)
-	res, err := httpRequestJSON("POST", url, mapData)
-	if err != nil {
-		return false, errors.Wrap(err, "failed to request public")
-	}
-
-	if res.Message == "有效的证书!" {
-		return true, nil
-	}
-
-	return false, errors.New(res.Message)
-}
-
-func (csp *HuBeiCa) signData(input []byte) ([]byte, error) {
-	if !csp.validate {
-		return nil, errors.New("ca is invalidate")
-	}
-
-	mapData := make(map[string]interface{})
-	mapData["signedCertAlias"] = fmt.Sprint(csp.CertID)
-	mapData["appKey"] = csp.AppKey
-	mapData["appSecret"] = csp.AppSecret
-	mapData["inData"] = base64.StdEncoding.EncodeToString(input)
-	mapData["digestAlg"] = "SM3WITHSM2"
-
-	url := fmt.Sprintf("%s://%s/hbcaDSS/SignData.do", csp.Protocol, csp.HTTPServer)
-	res, err := httpRequestJSON("POST", url, mapData)
-	if err != nil {
-		return nil, errors.Wrap(err, "httpRequestJSON(\"POST\", url, mapData)")
-	}
-
-	if res.Code != "0" {
-		return nil, errors.New(res.Message)
-	}
-
-	output, err := base64.StdEncoding.DecodeString(res.Message)
-	if err != nil {
-		return nil, errors.Wrap(err, "base64.StdEncoding.DecodeString(res.Message)")
+		return nil, errors.Wrap(err, "base64.StdEncoding.DecodeString(response)")
 	}
 
 	sd := &hbcaSignData{
-		SignData:  output,
-		CertID:    csp.CertID,
-		DigestAlg: "SM3WITHSM2",
+		SignData: output,
+		CertID:   csp.opt.CertID,
 	}
 
 	bytes, err := json.Marshal(sd)
@@ -253,99 +220,206 @@ func (csp *HuBeiCa) signData(input []byte) ([]byte, error) {
 		return nil, errors.Wrap(err, "json.Marshal(sd)")
 	}
 
-	logger.Info("hbca invoke singData method,",
-		"input:", base64.StdEncoding.EncodeToString(input),
-		"signData:", res.Message,
-		"output:", base64.StdEncoding.EncodeToString(bytes))
 	return bytes, nil
 }
 
-func (csp *HuBeiCa) verifySignedData(input, signBytes []byte) (bool, error) {
-	if !csp.validate {
-		return false, errors.New("ca is invalidate")
-	}
-
+// VerifySignedData verify sign data
+func (csp *HuBeiCa) VerifySignedData(input, signBytes []byte) (bool, error) {
 	sd := &hbcaSignData{}
 	if err := json.Unmarshal(signBytes, sd); err != nil {
 		return false, errors.Wrap(err, "json.Unmarshal(signBytes,sd)")
 	}
 
-	logger.Info("hbca invoke verifySignedData method,",
-		"input:", base64.StdEncoding.EncodeToString(input),
-		"signData:", base64.StdEncoding.EncodeToString(sd.SignData),
-		"output:", base64.StdEncoding.EncodeToString(signBytes))
-
-	certStr, err := getCertBase64(fmt.Sprint(sd.CertID), csp.AppKey, csp.AppSecret, csp.Protocol, csp.HTTPServer)
+	certBase64, err := csp.GetSignCert(sd.CertID)
 	if err != nil {
-		return false, errors.Wrap(err, "getCertBase64(fmt.Sprint(sd.CertID),csp.AppKey,csp.AppSecret)")
+		return false, errors.Wrap(err, "csp.getCertBase64()")
 	}
 
-	mapData := make(map[string]interface{})
-	mapData["signedCertAlias"] = fmt.Sprint(sd.CertID)
-	mapData["appKey"] = csp.AppKey
-	mapData["appSecret"] = csp.AppSecret
-	mapData["inData"] = base64.StdEncoding.EncodeToString(input)
-	mapData["digestAlg"] = sd.DigestAlg
-	mapData["signData"] = base64.StdEncoding.EncodeToString(sd.SignData)
-	mapData["certB64"] = certStr
+	s := NewHbcaWSDL(csp.opt.WSDLServer, csp.opt.Namespace, csp.opt.ContentType)
 
-	url := fmt.Sprintf("%s://%s/hbcaDSS/VerifySignedData.do", csp.Protocol, csp.HTTPServer)
-	res, err := httpRequestJSON("POST", url, mapData)
-	if err != nil {
-		return false, errors.Wrap(err, "httpRequestJSON(\"POST\", url, mapData)")
+	inData := base64.StdEncoding.EncodeToString(input)
+	signData := base64.StdEncoding.EncodeToString(sd.SignData)
+	data := &wsdl.VerifySignedDataP1{
+		AppKey:     &csp.opt.AppKey,
+		AppSecret:  &csp.opt.AppSecret,
+		InData:     &inData,
+		SignedData: &signData,
+		BstrCert:   &certBase64,
 	}
 
-	if res.Code != "0" {
-		return false, errors.New(fmt.Sprintf("input:%s, sign:%s, err:%s", base64.StdEncoding.EncodeToString(input), base64.StdEncoding.EncodeToString(signBytes), res.Code))
+	res, err := s.VerifySignedDataP1(data)
+	if err != nil {
+		return false, errors.Wrap(err, "s.VerifySignedDataP1(data)")
+	}
+
+	if _, err = HandlerWSDLResponse(*res.Return); err != nil {
+		return false, errors.Wrap(err, "HandlerWSDLResponse(*res.Return)")
 	}
 
 	return true, nil
 }
 
-func (csp *HuBeiCa) pubKeyEncrypt(input []byte) ([]byte, error) {
-	mapData := make(map[string]interface{})
-	mapData["encryptCertAlias"] = fmt.Sprint(csp.CertID)
-	mapData["appKey"] = csp.AppKey
-	mapData["appSecret"] = csp.AppSecret
-	mapData["inData"] = base64.StdEncoding.EncodeToString(input)
+// PubKeyEncrypt public key encrypt
+func (csp *HuBeiCa) PubKeyEncrypt(input []byte) ([]byte, error) {
+	s := NewHbcaWSDL(csp.opt.WSDLServer, csp.opt.Namespace, csp.opt.ContentType)
 
-	url := fmt.Sprintf("%s://%s/hbcaDSS/PubKeyEncrypt.do", csp.Protocol, csp.HTTPServer)
-	res, err := httpRequestJSON("POST", url, mapData)
-	if err != nil {
-		return nil, errors.Wrap(err, "httpRequestJSON(\"POST\", url, mapData)")
+	inData := base64.StdEncoding.EncodeToString(input)
+	data := &wsdl.PubKeyEncryptEx{
+		AppKey:    &csp.opt.AppKey,
+		AppSecret: &csp.opt.AppSecret,
+		EncCertId: &csp.opt.CertID,
+		InData:    &inData,
 	}
 
-	if res.Code != "0" {
-		return nil, errors.New(res.Message)
+	res, err := s.PubKeyEncryptEx(data)
+	if err != nil {
+		return nil, errors.Wrap(err, "s.PubKeyEncryptEx(data)")
 	}
 
-	output, err := base64.StdEncoding.DecodeString(res.Message)
+	response, err := HandlerWSDLResponse(*res.Return)
 	if err != nil {
-		return nil, errors.Wrap(err, "base64.StdEncoding.DecodeString(res.Message)")
+		return nil, errors.Wrap(err, "HandlerWSDLResponse(*res.Return)")
+	}
+
+	output, err := base64.StdEncoding.DecodeString(response)
+	if err != nil {
+		return nil, errors.Wrap(err, "base64.StdEncoding.DecodeString(response)")
 	}
 	return output, nil
 }
 
-func (csp *HuBeiCa) priKeyDecrypt(input []byte) ([]byte, error) {
-	mapData := make(map[string]interface{})
-	mapData["decryptCertAlias"] = fmt.Sprint(csp.CertID)
-	mapData["appKey"] = csp.AppKey
-	mapData["appSecret"] = csp.AppSecret
-	mapData["inData"] = base64.StdEncoding.EncodeToString(input)
+// PriKeyDecrypt private key decrypt
+func (csp *HuBeiCa) PriKeyDecrypt(input []byte) ([]byte, error) {
+	s := NewHbcaWSDL(csp.opt.WSDLServer, csp.opt.Namespace, csp.opt.ContentType)
 
-	url := fmt.Sprintf("%s://%s/hbcaDSS/PriKeyDecrypt.do", csp.Protocol, csp.HTTPServer)
-	res, err := httpRequestJSON("POST", url, mapData)
+	strInput := base64.StdEncoding.EncodeToString(input)
+	data := &wsdl.PriKeyDecryptEx{
+		AppKey:    &csp.opt.AppKey,
+		AppSecret: &csp.opt.AppSecret,
+		EncCertId: &csp.opt.CertID,
+		InData:    &strInput,
+	}
+
+	res, err := s.PriKeyDecryptEx(data)
 	if err != nil {
-		return nil, errors.Wrap(err, "httpRequestJSON(\"POST\", url, mapData)")
+		return nil, errors.Wrap(err, "s.PriKeyDecryptEx(data)")
 	}
 
-	if res.Code != "0" {
-		return nil, errors.New(res.Message)
+	response, err := HandlerWSDLResponse(*res.Return)
+	if err != nil {
+		return nil, errors.Wrap(err, "HandlerWSDLResponse(*res.Return)")
 	}
 
-	output, err := base64.StdEncoding.DecodeString(res.Message)
+	output, err := base64.StdEncoding.DecodeString(response)
 	if err != nil {
 		return nil, errors.Wrap(err, "base64.StdEncoding.DecodeString(res.Message)")
 	}
+
+	output, err = base64.StdEncoding.DecodeString(string(output))
+	if err != nil {
+		return nil, errors.Wrap(err, "base64.StdEncoding.DecodeString(res.Message)")
+	}
+
 	return output, nil
+}
+
+// CreateP10 create p10
+func (csp *HuBeiCa) CreateP10(createP10Input *CreateP10Input) (string, error) {
+	s := NewHbcaWSDL(csp.opt.WSDLServer, csp.opt.Namespace, csp.opt.ContentType)
+
+	data := &wsdl.CreateP10{
+		AppKey:     &csp.opt.AppKey,
+		AppSecret:  &csp.opt.AppSecret,
+		CertId:     &createP10Input.CertID,
+		CertName:   &createP10Input.CertName,
+		ApplyDn:    &createP10Input.ApplyDn,
+		EncryptAlg: &createP10Input.EncryptAlg,
+		KeyLength:  &createP10Input.KeyLength,
+		DigestAlg:  &createP10Input.DigestAlg,
+	}
+
+	res, err := s.CreateP10(data)
+	if err != nil {
+		return "", errors.Wrap(err, "s.CreateP10(data)")
+	}
+
+	response, err := HandlerWSDLResponse(*res.Return)
+	if err != nil {
+		return "", errors.Wrap(err, "HandlerWSDLResponse(*res.Return)")
+	}
+
+	return response, nil
+}
+
+// ImportEncCert import enc cert
+func (csp *HuBeiCa) ImportEncCert(importEncCert *ImportEncCert) error {
+	s := NewHbcaWSDL(csp.opt.WSDLServer, csp.opt.Namespace, csp.opt.ContentType)
+
+	data := &wsdl.ImportEncCert{
+		AppKey:          &csp.opt.AppKey,
+		AppSecret:       &csp.opt.AppSecret,
+		RootId:          &importEncCert.RootID,
+		SignCertId:      &importEncCert.SignCertID,
+		EncCertId:       &importEncCert.EncCertID,
+		EncCertB64:      &importEncCert.EncCertB64,
+		DoubleEncPriKey: &importEncCert.DoubleEncPriKey,
+		CertType:        &importEncCert.CertType,
+	}
+
+	res, err := s.ImportEncCert(data)
+	if err != nil {
+		return errors.Wrap(err, "s.ImportEncCert(data)")
+	}
+
+	if _, err = HandlerWSDLResponse(*res.Return); err != nil {
+		return errors.Wrap(err, "HandlerWSDLResponse(*res.Return)")
+	}
+
+	return nil
+}
+
+// ImportSignCert import sign cert
+func (csp *HuBeiCa) ImportSignCert(importSignCert *ImportSignCert) error {
+	s := NewHbcaWSDL(csp.opt.WSDLServer, csp.opt.Namespace, csp.opt.ContentType)
+
+	data := &wsdl.ImportSignCert{
+		AppKey:       &csp.opt.AppKey,
+		AppSecret:    &csp.opt.AppSecret,
+		CertId:       &importSignCert.CertID,
+		CertName:     &importSignCert.CertName,
+		SignCertB64:  &importSignCert.SignCertB64,
+		CertType:     &importSignCert.CertType,
+		RootCertName: &importSignCert.RootCertName,
+		ImportType:   &importSignCert.ImportType,
+		Password:     &importSignCert.Password,
+	}
+
+	res, err := s.ImportSignCert(data)
+	if err != nil {
+		return errors.Wrap(err, "s.ImportSignCert(data)")
+	}
+
+	if _, err = HandlerWSDLResponse(*res.Return); err != nil {
+		return errors.Wrap(err, "HandlerWSDLResponse(*res.Return)")
+	}
+
+	return nil
+}
+
+// CertApply cert apply
+func (csp *HuBeiCa) CertApply(input *HBCAApplyInput) (*ResponseCA, error) {
+	url := fmt.Sprintf("%s%s", csp.CertServer, csp.CertAction.CertApplyAction)
+	return httpRequestJSON("POST", url, input)
+}
+
+// ExtendCertValid cert extend
+func (csp *HuBeiCa) ExtendCertValid(input *ExtendCertInput) (*ResponseCA, error) {
+	url := fmt.Sprintf("%s%s", csp.CertServer, csp.CertAction.ExtendCertValidAction)
+	return httpRequestJSON("POST", url, input)
+}
+
+// CertRevoke cert revoke
+func (csp *HuBeiCa) CertRevoke(input *CertRevokeInput) (*ResponseCA, error) {
+	url := fmt.Sprintf("%s%s", csp.CertServer, csp.CertAction.CertRevokeAction)
+	return httpRequestJSON("POST", url, input)
 }

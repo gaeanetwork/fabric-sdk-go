@@ -40,35 +40,45 @@ func New(opts *Opts, keyStore bccsp.KeyStore) (bccsp.BCCSP, error) {
 }
 
 func newhbca(opts *HBCAOpts) (bccsp.BCCSP, error) {
-	hbca := &HuBeiCa{
-		HTTPServer: opts.HTTPServer,
-		Protocol:   opts.Protocol,
-		CertID:     opts.CertID,
-		AppKey:     opts.AppKey,
-		AppSecret:  opts.AppSecret,
+	if len(opts.AppKey) == 0 {
+		panic("please set the appkey of hbca")
 	}
 
-	var err error
-	hbca.certBase64, err = hbca.getCertBase64()
-	if err != nil {
-		return nil, errors.Wrap(err, "hbca.getCertBase64()")
-	}
-
-	hbca.validate, err = hbca.validateCert()
-	if err != nil {
-		return nil, errors.Wrap(err, "hbca.getCertBase64()")
-	}
-
-	hbca.cert, err = hbca.getCertInfo()
-	if err != nil {
-		return nil, errors.Wrap(err, "hbca.getCertInfo()")
-	}
-
-	hbca.pk, err = hbca.getPublickey()
-	if err != nil {
-		return nil, errors.Wrap(err, "hbca.getPublickey()")
+	if len(opts.AppSecret) == 0 {
+		panic("please set the appsecret of hbca")
 	}
 
 	logger.Info("Module hbca of the bccsp server loaded successfully")
-	return hbca, nil
+	return &HuBeiCa{
+		opt: opts,
+	}, nil
+}
+
+// NewCert new a hbca http server
+func NewCert(certServer string, certAction *CertAction) HBCACert {
+	return &HuBeiCa{
+		CertServer: certServer,
+		CertAction: certAction,
+	}
+}
+
+// HBCACert is the hbca api
+type HBCACert interface {
+	// CreateP10 create p10, generate the private key and public key
+	CreateP10(createP10Input *CreateP10Input) (string, error)
+
+	// CertApply app ca
+	CertApply(input *HBCAApplyInput) (*ResponseCA, error)
+
+	// ExtendCertValid cert extend
+	ExtendCertValid(input *ExtendCertInput) (*ResponseCA, error)
+
+	// CertRevoke cert revoke
+	CertRevoke(input *CertRevokeInput) (*ResponseCA, error)
+
+	// ImportEncCert import cert
+	ImportEncCert(importEncCert *ImportEncCert) error
+
+	// ImportSignCert import cert
+	ImportSignCert(importSignCert *ImportSignCert) error
 }

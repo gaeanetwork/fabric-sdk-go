@@ -35,15 +35,13 @@ func getBCCSPFromOpts(config *server.Opts) (bccsp.BCCSP, error) {
 
 //getOptsByConfig Returns Factory opts for given SDK config
 func getOptsByConfig(c core.CryptoSuiteConfig) *server.Opts {
-	certID := c.SecurityCertID()
 	opts := &server.Opts{
 		SecLevel:    c.SecurityLevel(),
 		HashFamily:  c.SecurityAlgorithm(),
 		DefaultOpts: "hbca",
 		HBCA: &server.HBCAOpts{
-			HTTPServer: c.SecurityHTTPServer(),
-			Protocol:   c.SecurityProtocol(),
-			CertID:     int64(certID),
+			WSDLServer: c.SecurityWSDLServer(),
+			CertID:     c.SecurityCertID(),
 			AppKey:     c.SecurityAppKey(),
 			AppSecret:  c.SecurityAppSecret(),
 		},

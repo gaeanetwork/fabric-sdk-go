@@ -116,19 +116,14 @@ func (c *Config) KeyStorePath() string {
 	return filepath.Join(keystorePath, "keystore")
 }
 
-//SecurityHTTPServer will be set only if provider is PKCS11
-func (c *Config) SecurityHTTPServer() string {
-	return c.backend.GetString("client.BCCSP.security.hbca.httpserver")
-}
-
-//SecurityProtocol will be set only if provider is PKCS11
-func (c *Config) SecurityProtocol() string {
-	return c.backend.GetString("client.BCCSP.security.hbca.protocol")
+//SecurityWSDLServer will be set only if provider is PKCS11
+func (c *Config) SecurityWSDLServer() string {
+	return c.backend.GetString("client.BCCSP.security.hbca.wsdlserver")
 }
 
 //SecurityCertID will be set only if provider is PKCS11
-func (c *Config) SecurityCertID() int {
-	return c.backend.GetInt("client.BCCSP.security.hbca.certid")
+func (c *Config) SecurityCertID() string {
+	return c.backend.GetString("client.BCCSP.security.hbca.certid")
 }
 
 //SecurityAppKey will be set only if provider is PKCS11

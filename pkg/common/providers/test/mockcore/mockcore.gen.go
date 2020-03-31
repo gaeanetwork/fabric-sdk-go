@@ -64,43 +64,30 @@ func (mr *MockCryptoSuiteConfigMockRecorder) KeyStorePath() *gomock.Call {
 
 // ===server start===
 // KeyStorePath mocks base method
-func (m *MockCryptoSuiteConfig) SecurityHTTPServer() string {
+func (m *MockCryptoSuiteConfig) SecurityWSDLServer() string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SecurityHTTPServer")
+	ret := m.ctrl.Call(m, "SecurityWSDLServer")
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
 // KeyStorePath indicates an expected call of KeyStorePath
-func (mr *MockCryptoSuiteConfigMockRecorder) SecurityHTTPServer() *gomock.Call {
+func (mr *MockCryptoSuiteConfigMockRecorder) SecurityWSDLServer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecurityHTTPServer", reflect.TypeOf((*MockCryptoSuiteConfig)(nil).SecurityHTTPServer))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecurityWSDLServer", reflect.TypeOf((*MockCryptoSuiteConfig)(nil).SecurityWSDLServer))
 }
 
-func (m *MockCryptoSuiteConfig) SecurityProtocol() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SecurityProtocol")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// KeyStorePath indicates an expected call of KeyStorePath
-func (mr *MockCryptoSuiteConfigMockRecorder) SecurityProtocol() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecurityProtocol", reflect.TypeOf((*MockCryptoSuiteConfig)(nil).SecurityProtocol))
-}
-
-func (m *MockCryptoSuiteConfig) SecurityCertID() int {
+func (m *MockCryptoSuiteConfig) SecurityCertID() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SecurityCertID")
-	ret0, _ := ret[0].(int)
+	ret0, _ := ret[0].(string)
 	return ret0
 }
 
 // SecurityCertID indicates an expected call of KeyStorePath
 func (mr *MockCryptoSuiteConfigMockRecorder) SecurityCertID() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecurityHTTPServer", reflect.TypeOf((*MockCryptoSuiteConfig)(nil).SecurityCertID))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecurityCertID", reflect.TypeOf((*MockCryptoSuiteConfig)(nil).SecurityCertID))
 }
 
 func (m *MockCryptoSuiteConfig) SecurityAppKey() string {

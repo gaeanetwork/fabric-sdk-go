@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/hex"
 	"hash"
 
 	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp"
@@ -11,16 +12,16 @@ import (
 
 // HuBeiCa a ca type
 type HuBeiCa struct {
-	HTTPServer string
-	Protocol   string
-	CertID     int64
-	AppKey     string
-	AppSecret  string
+	opt        *HBCAOpts
+	CertServer string
+	CertAction *CertAction
+}
 
-	certBase64 string
-	validate   bool
-	pk         *sm2.PublicKey
-	cert       *sm2.Certificate
+// CertAction cert action for http server
+type CertAction struct {
+	CertApplyAction       string
+	ExtendCertValidAction string
+	CertRevokeAction      string
 }
 
 // KeyGen generates a key using opts.
@@ -37,7 +38,7 @@ func (csp *HuBeiCa) KeyDeriv(k bccsp.Key, opts bccsp.KeyDerivOpts) (dk bccsp.Key
 // KeyImport imports a key from its raw representation using opts.
 // The opts argument should be appropriate for the primitive used.
 func (csp *HuBeiCa) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error) {
-	pk, err := csp.getPublickey()
+	pk, err := csp.GetPublickey(csp.opt.CertID)
 	if err != nil {
 		return nil, errors.Wrap(err, "csp.getPublickey()")
 	}
@@ -54,7 +55,10 @@ func (csp *HuBeiCa) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccs
 // GetKey returns the key this CSP associates to
 // the Subject Key Identifier ski.
 func (csp *HuBeiCa) GetKey(ski []byte) (k bccsp.Key, err error) {
-	pk, err := csp.getPublickey()
+	certID := hex.EncodeToString(ski)
+	logger.Info("GetKey[hex.EncodeToString(ski)]:", certID)
+
+	pk, err := csp.GetPublickey(csp.opt.CertID)
 	if err != nil {
 		return nil, errors.Wrap(err, "csp.getPublickey()")
 	}
@@ -86,7 +90,20 @@ func (csp *HuBeiCa) Sign(k bccsp.Key, digest []byte, opts bccsp.SignerOpts) ([]b
 		return nil, errors.New("Invalid digest. Cannot be empty")
 	}
 
-	return csp.signData(digest)
+	key, err := k.PublicKey()
+	if err != nil {
+		return nil, errors.Wrap(err, "k.PublicKey()")
+	}
+
+	// TODO: use this certID to sign
+	bytes, err := key.Bytes()
+	if err != nil {
+		return nil, errors.Wrap(err, "key.Bytes()")
+	}
+
+	certID := hex.EncodeToString(bytes)
+	logger.Info("certID for sign:", certID)
+	return csp.SignData(certID, digest)
 }
 
 // Verify verifies signature against key k and digest
@@ -99,30 +116,18 @@ func (csp *HuBeiCa) Verify(k bccsp.Key, signature, digest []byte, opts bccsp.Sig
 		return false, errors.New("Invalid digest. Cannot be empty")
 	}
 
-	return csp.verifySignedData(digest, signature)
+	return csp.VerifySignedData(digest, signature)
 }
 
 // Encrypt encrypts plaintext using key k.
 // The opts argument should be appropriate for the primitive used.
 func (csp *HuBeiCa) Encrypt(k bccsp.Key, plaintext []byte, opts bccsp.EncrypterOpts) ([]byte, error) {
-	if ok, err := csp.validateCert(); err != nil {
-		return nil, errors.Wrap(err, "csp.validateCert()")
-	} else if !ok {
-		return nil, errors.New("Invalid cert")
-	}
-
 	// TODO: Add PKCS11 support for encryption, when fabric starts requiring it
-	return csp.pubKeyEncrypt(plaintext)
+	return csp.PubKeyEncrypt(plaintext)
 }
 
 // Decrypt decrypts ciphertext using key k.
 // The opts argument should be appropriate for the primitive used.
 func (csp *HuBeiCa) Decrypt(k bccsp.Key, ciphertext []byte, opts bccsp.DecrypterOpts) ([]byte, error) {
-	if ok, err := csp.validateCert(); err != nil {
-		return nil, errors.Wrap(err, "csp.validateCert()")
-	} else if !ok {
-		return nil, errors.New("Invalid cert")
-	}
-
-	return csp.priKeyDecrypt(ciphertext)
+	return csp.PriKeyDecrypt(ciphertext)
 }

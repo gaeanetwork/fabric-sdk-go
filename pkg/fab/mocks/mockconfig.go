@@ -225,19 +225,14 @@ func (c *MockConfig) KeyStorePath() string {
 	return "/tmp/fabsdkgo_test"
 }
 
-// SecurityHTTPServer ...
-func (c *MockConfig) SecurityHTTPServer() string {
-	return "127.0.0.1"
-}
-
-// SecurityProtocol ...
-func (c *MockConfig) SecurityProtocol() string {
-	return "http"
+// SecurityWSDLServer ...
+func (c *MockConfig) SecurityWSDLServer() string {
+	return "http://127.0.0.1:8082/hbcaDSS/hbcaService?wsdl"
 }
 
 // SecurityCertID ...
-func (c *MockConfig) SecurityCertID() int {
-	return 109
+func (c *MockConfig) SecurityCertID() string {
+	return "109"
 }
 
 // SecurityAppKey ...

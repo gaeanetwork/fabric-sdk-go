@@ -419,7 +419,11 @@ func (csp *HuBeiCa) ExtendCertValid(input *ExtendCertInput) (*ResponseCA, error)
 }
 
 // CertRevoke cert revoke
-func (csp *HuBeiCa) CertRevoke(input *CertRevokeInput) (*ResponseCA, error) {
+func (csp *HuBeiCa) CertRevoke(input *CertRevokeInput) error {
 	url := fmt.Sprintf("%s%s", csp.CertServer, csp.CertAction.CertRevokeAction)
-	return httpRequestJSON("POST", url, input)
+	_, err := httpRequestJSON("POST", url, input)
+	if err != nil {
+		return errors.Wrap(err, "httpRequestJSON(\"POST\", url, input)")
+	}
+	return nil
 }

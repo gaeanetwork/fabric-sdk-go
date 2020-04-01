@@ -2,9 +2,11 @@ package server
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -47,4 +49,22 @@ func httpRequestJSON(httpType, url string, data interface{}) (*ResponseCA, error
 		return nil, errors.New(string(result))
 	}
 	return response, nil
+}
+
+// GenerateCertID format the string
+func GenerateCertID(bytes []byte) string {
+	if len(bytes) == 0 {
+		return ""
+	}
+
+	certBase64 := base64.StdEncoding.EncodeToString(bytes)
+	certBase64 = strings.ReplaceAll(certBase64, "+", "")
+	certBase64 = strings.ReplaceAll(certBase64, "/", "")
+	certBase64 = strings.ReplaceAll(certBase64, "=", "")
+	certBase64 = strings.ToLower(certBase64)
+	if len(certBase64) < 100 {
+		return certBase64
+	}
+
+	return certBase64[0:99]
 }

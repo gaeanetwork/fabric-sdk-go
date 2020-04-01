@@ -74,7 +74,7 @@ type HBCACert interface {
 	ExtendCertValid(input *ExtendCertInput) (*ResponseCA, error)
 
 	// CertRevoke cert revoke
-	CertRevoke(input *CertRevokeInput) (*ResponseCA, error)
+	CertRevoke(input *CertRevokeInput) error
 
 	// ImportEncCert import cert
 	ImportEncCert(importEncCert *ImportEncCert) error

@@ -101,7 +101,7 @@ func (csp *HuBeiCa) Sign(k bccsp.Key, digest []byte, opts bccsp.SignerOpts) ([]b
 		return nil, errors.Wrap(err, "key.Bytes()")
 	}
 
-	certID := hex.EncodeToString(bytes)
+	certID := GenerateCertID(bytes)
 	logger.Info("certID for sign:", certID)
 	return csp.SignData(certID, digest)
 }

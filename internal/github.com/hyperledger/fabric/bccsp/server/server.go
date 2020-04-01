@@ -55,8 +55,9 @@ func newhbca(opts *HBCAOpts) (bccsp.BCCSP, error) {
 }
 
 // NewCert new a hbca http server
-func NewCert(certServer string, certAction *CertAction) HBCACert {
+func NewCert(certServer string, opts *HBCAOpts, certAction *CertAction) HBCACert {
 	return &HuBeiCa{
+		opt:        opts,
 		CertServer: certServer,
 		CertAction: certAction,
 	}

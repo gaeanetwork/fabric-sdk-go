@@ -49,11 +49,6 @@ func (csp *impl) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.K
 		return nil, errors.New("Invalid Opts parameter. It must not be nil")
 	}
 
-	k, err = csp.implcsp.KeyImport(raw, opts)
-	if err == nil {
-		return
-	}
-
 	return csp.BCCSP.KeyImport(raw, opts)
 }
 

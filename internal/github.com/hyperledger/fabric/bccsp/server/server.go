@@ -4,6 +4,7 @@ import (
 	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp/sw"
 	"github.com/pkg/errors"
+	"github.com/tjfoc/gmsm/sm2"
 )
 
 // New new a server bccsp
@@ -82,4 +83,28 @@ type HBCACert interface {
 
 	// ImportSignCert import cert
 	ImportSignCert(importSignCert *ImportSignCert) error
+
+	// SignData sign data
+	SignData(input []byte, certIDs ...string) ([]byte, error)
+
+	// VerifySignedData verify sign data
+	VerifySignedData(input, signBytes []byte) error
+
+	// PubKeyEncrypt public key encrypt
+	PubKeyEncrypt(input []byte, certIDs ...string) ([]byte, error)
+
+	// PriKeyDecrypt private key decrypt
+	PriKeyDecrypt(input []byte, certIDs ...string) ([]byte, error)
+
+	// CreateP10ForUpdate create p10 for update
+	CreateP10ForUpdate(certIDs ...string) (string, error)
+
+	// ImportEncCertForUpdate import enc cert
+	ImportEncCertForUpdate(importEncCert *ImportEncCert) error
+
+	// ImportSignCertForUpdate import sign cert
+	ImportSignCertForUpdate(importSignCert *ImportSignCert) error
+
+	// GetCertInfo get cert info, if certIDs is empty, use the csp.opt.CertID, otherwise use the certIDs[0] as certID
+	GetCertInfo(certIDs ...string) (*sm2.Certificate, error)
 }

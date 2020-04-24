@@ -40,6 +40,8 @@ func httpRequestJSON(httpType, url string, data interface{}) (*ResponseCA, error
 		return nil, errors.Wrap(err, "ioutil.ReadAll(resp.Body)")
 	}
 
+	logger.Debugf("http response, method:%s, url:%s, parameters:%s, response:%s", httpType, url, string(jsonStr), string(result))
+
 	response := &ResponseCA{}
 	if err := json.Unmarshal(result, response); err != nil {
 		return nil, errors.Wrap(err, "json.Unmarshal(result, response);")

@@ -2,11 +2,11 @@ package server
 
 import (
 	"hash"
+	"strings"
 
 	"github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/bccsp"
 	flogging "github.com/hyperledger/fabric-sdk-go/internal/github.com/hyperledger/fabric/sdkpatch/logbridge"
 	"github.com/pkg/errors"
-	"github.com/tjfoc/gmsm/sm2"
 )
 
 var (
@@ -49,23 +49,27 @@ func (csp *impl) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.K
 		return nil, errors.New("Invalid Opts parameter. It must not be nil")
 	}
 
-	return csp.BCCSP.KeyImport(raw, opts)
+	k, err = csp.BCCSP.KeyImport(raw, opts)
+	if err != nil {
+		err = errors.Wrap(err, "csp.BCCSP.KeyImport(raw, opts)")
+		return
+	}
+
+	if err = csp.ks.StoreKey(k); err != nil {
+		// TODO errors.As
+		if strings.Contains(err.Error(), "already exists in the keystore") {
+			err = nil
+			return
+		}
+		err = errors.Wrap(err, "csp.ks.StoreKey(k)")
+	}
+	return
 }
 
 // GetKey returns the key this CSP associates to
 // the Subject Key Identifier ski.
 func (csp *impl) GetKey(ski []byte) (bccsp.Key, error) {
-	pk, err := sm2.ParseSm2PublicKey(ski)
-	if err == nil {
-		return &sm2PublicKey{pub: pk, ski: ski}, nil
-	}
-
-	k, err := csp.implcsp.GetKey(ski)
-	if err == nil {
-		return k, nil
-	}
-	logger.Debug("csp.implcsp.GetKey(ski), err:", err.Error())
-	return csp.BCCSP.GetKey(ski)
+	return csp.ks.GetKey(ski)
 }
 
 // Hash hashes messages msg using options opts.
@@ -119,12 +123,12 @@ func (csp *impl) Verify(k bccsp.Key, signature, digest []byte, opts bccsp.Signer
 func (csp *impl) Encrypt(k bccsp.Key, plaintext []byte, opts bccsp.EncrypterOpts) ([]byte, error) {
 	// TODO: Add PKCS11 support for encryption, when fabric starts requiring it
 	// return csp.pubKeyEncrypt(plaintext)
-	return csp.implcsp.Encrypt(k, plaintext, opts)
+	return csp.BCCSP.Encrypt(k, plaintext, opts)
 }
 
 // Decrypt decrypts ciphertext using key k.
 // The opts argument should be appropriate for the primitive used.
 func (csp *impl) Decrypt(k bccsp.Key, ciphertext []byte, opts bccsp.DecrypterOpts) ([]byte, error) {
 	// return csp.priKeyDecrypt(ciphertext)
-	return csp.implcsp.Decrypt(k, ciphertext, opts)
+	return csp.BCCSP.Decrypt(k, ciphertext, opts)
 }

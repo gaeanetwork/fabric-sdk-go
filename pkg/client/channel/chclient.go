@@ -91,7 +91,7 @@ func New(channelProvider context.ChannelProvider, opts ...ClientOption) (*Client
 //
 //  Returns:
 //  the proposal responses from peer(s)
-func (cc *Client) Query(request Request, options ...RequestOption) (Response, error) {
+func (cc *Client) Query(request *Request, options ...RequestOption) (Response, error) {
 
 	options = append(options, addDefaultTimeout(fab.Query))
 	options = append(options, addDefaultTargetFilter(cc.context, filter.ChaincodeQuery))
@@ -106,7 +106,7 @@ func (cc *Client) Query(request Request, options ...RequestOption) (Response, er
 //
 //  Returns:
 //  the proposal responses from peer(s)
-func (cc *Client) Execute(request Request, options ...RequestOption) (Response, error) {
+func (cc *Client) Execute(request *Request, options ...RequestOption) (Response, error) {
 	options = append(options, addDefaultTimeout(fab.Execute))
 	options = append(options, addDefaultTargetFilter(cc.context, filter.EndorsingPeer))
 
@@ -141,7 +141,7 @@ func addDefaultTimeout(tt fab.TimeoutType) RequestOption {
 //
 //  Returns:
 //  the proposal responses from peer(s)
-func (cc *Client) InvokeHandler(handler invoke.Handler, request Request, options ...RequestOption) (Response, error) {
+func (cc *Client) InvokeHandler(handler invoke.Handler, request *Request, options ...RequestOption) (Response, error) {
 	//Read execute tx options
 	txnOpts, err := cc.prepareOptsFromOptions(cc.context, options...)
 	if err != nil {
@@ -214,7 +214,7 @@ func (cc *Client) createReqContext(txnOpts *requestOptions) (reqContext.Context,
 }
 
 //prepareHandlerContexts prepares context objects for handlers
-func (cc *Client) prepareHandlerContexts(reqCtx reqContext.Context, request Request, o requestOptions) (*invoke.RequestContext, *invoke.ClientContext, error) {
+func (cc *Client) prepareHandlerContexts(reqCtx reqContext.Context, request *Request, o requestOptions) (*invoke.RequestContext, *invoke.ClientContext, error) {
 
 	if request.ChaincodeID == "" || request.Fcn == "" {
 		return nil, nil, errors.New("ChaincodeID and Fcn are required")
@@ -261,7 +261,13 @@ func (cc *Client) prepareHandlerContexts(reqCtx reqContext.Context, request Requ
 	}
 
 	requestContext := &invoke.RequestContext{
-		Request:         invoke.Request(request),
+		Request: &invoke.Request{
+			ChaincodeID:     request.ChaincodeID,
+			Fcn:             request.Fcn,
+			Args:            request.Args,
+			TransientMap:    request.TransientMap,
+			InvocationChain: request.InvocationChain,
+		},
 		Opts:            invoke.Opts(o),
 		Response:        invoke.Response{},
 		RetryHandler:    retry.New(o.Retry),

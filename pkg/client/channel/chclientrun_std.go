@@ -12,10 +12,10 @@ import (
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/channel/invoke"
 )
 
-func callQuery(cc *Client, request Request, options ...RequestOption) (Response, error) {
+func callQuery(cc *Client, request *Request, options ...RequestOption) (Response, error) {
 	return cc.InvokeHandler(invoke.NewQueryHandler(), request, options...)
 }
 
-func callExecute(cc *Client, request Request, options ...RequestOption) (Response, error) {
+func callExecute(cc *Client, request *Request, options ...RequestOption) (Response, error) {
 	return cc.InvokeHandler(invoke.NewExecuteHandler(), request, options...)
 }

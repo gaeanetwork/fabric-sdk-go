@@ -79,7 +79,7 @@ type ClientContext struct {
 
 //RequestContext contains request, opts, response parameters for handler execution
 type RequestContext struct {
-	Request         Request
+	Request         *Request
 	Opts            Opts
 	Response        Response
 	Error           error

@@ -15,6 +15,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/hyperledger/fabric-protos-go/common"
+	pb "github.com/hyperledger/fabric-protos-go/peer"
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/channel/invoke"
 	txnmocks "github.com/hyperledger/fabric-sdk-go/pkg/client/common/mocks"
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/common/selection/staticselection"
@@ -27,8 +29,6 @@ import (
 	"github.com/hyperledger/fabric-sdk-go/pkg/fab/peer"
 	"github.com/hyperledger/fabric-sdk-go/pkg/fab/txn"
 	mspmocks "github.com/hyperledger/fabric-sdk-go/pkg/msp/test/mockmsp"
-	"github.com/hyperledger/fabric-protos-go/common"
-	pb "github.com/hyperledger/fabric-protos-go/peer"
 )
 
 const (
@@ -46,7 +46,7 @@ func TestTxProposalResponseFilter(t *testing.T) {
 	peers := []fab.Peer{testPeer1, testPeer2}
 	chClient := setupChannelClient(peers, t)
 
-	_, err := chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
+	_, err := chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
 	if err == nil {
 		t.Fatal("Should have failed for not success status")
 	}
@@ -60,7 +60,7 @@ func TestTxProposalResponseFilter(t *testing.T) {
 	testPeer2.Status = 200
 	peers = []fab.Peer{testPeer1, testPeer2}
 	chClient = setupChannelClient(peers, t)
-	_, err = chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
+	_, err = chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
 	if err == nil {
 		t.Fatal("Should have failed for not success status")
 	}
@@ -74,22 +74,22 @@ func TestTxProposalResponseFilter(t *testing.T) {
 func TestQuery(t *testing.T) {
 	chClient := setupChannelClient(nil, t)
 
-	_, err := chClient.Query(Request{})
+	_, err := chClient.Query(&Request{})
 	if err == nil {
 		t.Fatal("Should have failed for empty query request")
 	}
 
-	_, err = chClient.Query(Request{Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
+	_, err = chClient.Query(&Request{Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
 	if err == nil {
 		t.Fatal("Should have failed for empty chaincode ID")
 	}
 
-	_, err = chClient.Query(Request{ChaincodeID: "testCC", Args: [][]byte{[]byte("query"), []byte("b")}})
+	_, err = chClient.Query(&Request{ChaincodeID: "testCC", Args: [][]byte{[]byte("query"), []byte("b")}})
 	if err == nil {
 		t.Fatal("Should have failed for empty function")
 	}
 
-	response, err := chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
+	response, err := chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
 	if err != nil {
 		t.Fatalf("Failed to invoke test cc: %s", err)
 	}
@@ -104,7 +104,7 @@ func TestQuery(t *testing.T) {
 	testPeer2 := fcmocks.NewMockPeer("Peer2", "http://peer2.com")
 	testPeer2.Payload = []byte("test2")
 	chClient = setupChannelClient([]fab.Peer{testPeer1, testPeer2}, t)
-	_, err = chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
+	_, err = chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
 	if err == nil {
 		t.Fatal("Should have failed")
 	}
@@ -117,7 +117,7 @@ func TestQuery(t *testing.T) {
 func TestQuerySelectionError(t *testing.T) {
 	chClient := setupChannelClientWithError(nil, errors.New("Test Error"), nil, t)
 
-	_, err := chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
+	_, err := chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
 	if err == nil {
 		t.Fatal("Should have failed to query with error in selection.GetEndorsersFor ...")
 	}
@@ -126,7 +126,7 @@ func TestQuerySelectionError(t *testing.T) {
 func TestQueryWithOptSync(t *testing.T) {
 	chClient := setupChannelClient(nil, t)
 
-	response, err := chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
+	response, err := chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
 	if err != nil {
 		t.Fatalf("Failed to invoke test cc: %s", err)
 	}
@@ -145,7 +145,7 @@ func TestQueryWithOptAsync(t *testing.T) {
 	}
 	notifier := make(chan responseAndError)
 	go func() {
-		resp, err := chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
+		resp, err := chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
 		notifier <- responseAndError{Response: resp, Error: err}
 	}()
 	resp := <-notifier
@@ -164,7 +164,7 @@ func TestQueryWithOptTarget(t *testing.T) {
 
 	peers := []fab.Peer{testPeer}
 
-	response, err := chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke",
+	response, err := chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke",
 		Args: [][]byte{[]byte("query"), []byte("b")}}, WithTargets(peers...))
 	if err != nil {
 		t.Fatalf("Failed to invoke test cc: %s", err)
@@ -178,14 +178,14 @@ func TestQueryWithOptTarget(t *testing.T) {
 func TestQueryWithNilTargets(t *testing.T) {
 	chClient := setupChannelClient(nil, t)
 
-	_, err := chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke",
+	_, err := chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke",
 		Args: [][]byte{[]byte("query"), []byte("b")}}, WithTargets(nil, nil))
 	if err == nil || !strings.Contains(err.Error(), "target is nil") {
 		t.Fatal("Should have failed to invoke test cc due to nil target")
 	}
 
 	peers := []fab.Peer{fcmocks.NewMockPeer("Peer1", "http://peer1.com"), nil}
-	_, err = chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke",
+	_, err = chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke",
 		Args: [][]byte{[]byte("query"), []byte("b")}}, WithTargets(peers...))
 	if err == nil || !strings.Contains(err.Error(), "target is nil") {
 		t.Fatal("Should have failed to invoke test cc due to nil target")
@@ -195,17 +195,17 @@ func TestQueryWithNilTargets(t *testing.T) {
 func TestExecuteTx(t *testing.T) {
 	chClient := setupChannelClient(nil, t)
 
-	_, err := chClient.Execute(Request{})
+	_, err := chClient.Execute(&Request{})
 	if err == nil {
 		t.Fatal("Should have failed for empty invoke request")
 	}
 
-	_, err = chClient.Execute(Request{Fcn: "invoke", Args: [][]byte{[]byte("move"), []byte("a"), []byte("b"), []byte("1")}})
+	_, err = chClient.Execute(&Request{Fcn: "invoke", Args: [][]byte{[]byte("move"), []byte("a"), []byte("b"), []byte("1")}})
 	if err == nil {
 		t.Fatal("Should have failed for empty chaincode ID")
 	}
 
-	_, err = chClient.Execute(Request{ChaincodeID: "testCC", Args: [][]byte{[]byte("move"), []byte("a"), []byte("b"), []byte("1")}})
+	_, err = chClient.Execute(&Request{ChaincodeID: "testCC", Args: [][]byte{[]byte("move"), []byte("a"), []byte("b"), []byte("1")}})
 	if err == nil {
 		t.Fatal("Should have failed for empty function")
 	}
@@ -216,7 +216,7 @@ func TestExecuteTx(t *testing.T) {
 	testPeer2 := fcmocks.NewMockPeer("Peer2", "http://peer2.com")
 	testPeer2.Payload = []byte("test2")
 	chClient = setupChannelClient([]fab.Peer{testPeer1, testPeer2}, t)
-	_, err = chClient.Execute(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("move"), []byte("b")}})
+	_, err = chClient.Execute(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("move"), []byte("b")}})
 	if err == nil {
 		t.Fatal("Should have failed")
 	}
@@ -242,7 +242,7 @@ func TestInvokeHandler(t *testing.T) {
 	expectedPayload := "somepayload"
 	handler := &customHandler{expectedPayload: []byte(expectedPayload)}
 
-	response, err := chClient.InvokeHandler(handler, Request{ChaincodeID: "testCC", Fcn: "move", Args: [][]byte{[]byte("a"), []byte("b"), []byte("1")}})
+	response, err := chClient.InvokeHandler(handler, &Request{ChaincodeID: "testCC", Fcn: "move", Args: [][]byte{[]byte("a"), []byte("b"), []byte("1")}})
 	if err != nil {
 		t.Fatalf("Should have succeeded but got error %s", err)
 	}
@@ -259,7 +259,7 @@ type customEndorsementHandler struct {
 }
 
 func (h *customEndorsementHandler) Handle(requestContext *invoke.RequestContext, clientContext *invoke.ClientContext) {
-	transactionProposalResponses, txnID, err := createAndSendTestTransactionProposal(h.transactor, &requestContext.Request, peer.PeersToTxnProcessors(requestContext.Opts.Targets))
+	transactionProposalResponses, txnID, err := createAndSendTestTransactionProposal(h.transactor, requestContext.Request, peer.PeersToTxnProcessors(requestContext.Opts.Targets))
 
 	requestContext.Response.TransactionID = txnID
 
@@ -298,7 +298,7 @@ func TestQueryWithCustomEndorser(t *testing.T) {
 				next:       invoke.NewEndorsementValidationHandler(),
 			},
 		),
-		Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}},
+		&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}},
 	)
 	if err != nil {
 		t.Fatalf("Failed to invoke test cc: %s", err)
@@ -312,7 +312,7 @@ func TestQueryWithCustomEndorser(t *testing.T) {
 func TestExecuteTxSelectionError(t *testing.T) {
 	chClient := setupChannelClientWithError(nil, errors.New("Test Error"), nil, t)
 
-	_, err := chClient.Execute(Request{ChaincodeID: "testCC", Fcn: "invoke",
+	_, err := chClient.Execute(&Request{ChaincodeID: "testCC", Fcn: "invoke",
 		Args: [][]byte{[]byte("move"), []byte("a"), []byte("b"), []byte("1")}})
 	if err == nil {
 		t.Fatal("Should have failed to execute tx with error in selection.GetEndorserrsFor ...")
@@ -330,7 +330,7 @@ func TestRPCStatusErrorPropagation(t *testing.T) {
 	testPeer1.Error = testStatus
 	chClient := setupChannelClient([]fab.Peer{testPeer1}, t)
 
-	_, err := chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
+	_, err := chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
 	if err == nil {
 		t.Fatal("Should have failed for not success status")
 	}
@@ -356,7 +356,7 @@ func TestOrdererStatusError(t *testing.T) {
 	testOrderer1.EnqueueSendBroadcastError(status.New(status.OrdererClientStatus,
 		status.ConnectionFailed.ToInt32(), testErrorMessage, nil))
 
-	_, err := chClient.Execute(Request{ChaincodeID: "test", Fcn: "invoke",
+	_, err := chClient.Execute(&Request{ChaincodeID: "test", Fcn: "invoke",
 		Args: [][]byte{[]byte("move"), []byte("a"), []byte("b"), []byte("1")}})
 	statusError, ok := status.FromError(err)
 	assert.True(t, ok, "Expected status error got %+v", err)
@@ -374,7 +374,7 @@ func TestTransactionValidationError(t *testing.T) {
 
 	chClient := setupChannelClient(peers, t)
 	chClient.eventService = mockEventService
-	response, err := chClient.Execute(Request{ChaincodeID: "test", Fcn: "invoke",
+	response, err := chClient.Execute(&Request{ChaincodeID: "test", Fcn: "invoke",
 		Args: [][]byte{[]byte("move"), []byte("a"), []byte("b"), []byte("1")}})
 	assert.Nil(t, response.Payload, "Expected nil result on failed execute operation")
 	assert.NotNil(t, err, "expected error")
@@ -391,7 +391,7 @@ func TestTransactionTimeout(t *testing.T) {
 
 	chClient := setupChannelClient(peers, t)
 	chClient.eventService = mockEventService
-	response, err := chClient.Execute(Request{ChaincodeID: "test", Fcn: "invoke",
+	response, err := chClient.Execute(&Request{ChaincodeID: "test", Fcn: "invoke",
 		Args: [][]byte{[]byte("move"), []byte("a"), []byte("b"), []byte("1")}})
 	assert.Nil(t, response.Payload, "Expected nil result on failed execute operation")
 	assert.NotNil(t, err, "expected error")
@@ -424,7 +424,7 @@ func TestExecuteTxWithRetries(t *testing.T) {
 		testPeer1.RWLock.Unlock()
 	}()
 
-	resp, err := chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}},
+	resp, err := chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}},
 		WithRetry(retryOpts))
 	assert.Nil(t, err, "expected error to be nil")
 	assert.Equal(t, 2, testPeer1.ProcessProposalCalls, "Expected peer to be called twice")
@@ -440,7 +440,7 @@ func TestBeforeRetryOption(t *testing.T) {
 
 	var callbacks int
 
-	_, _ = chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}},
+	_, _ = chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}},
 		WithRetry(retry.DefaultChannelOpts), WithBeforeRetry(func(error) { callbacks++ }))
 	assert.Equal(t, retry.DefaultChannelOpts.Attempts, callbacks, "Expected callback on each attempt")
 }
@@ -454,7 +454,7 @@ func TestMultiErrorPropogation(t *testing.T) {
 	testPeer2.Error = testErr
 	chClient := setupChannelClient([]fab.Peer{testPeer1, testPeer2}, t)
 
-	_, err := chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
+	_, err := chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
 	if err == nil {
 		t.Fatalf("Should have failed for not success status")
 	}
@@ -489,7 +489,7 @@ func TestDiscoveryGreylist(t *testing.T) {
 		MaxBackoff:     time.Second * 1,
 		RetryableCodes: retry.ChannelClientRetryableCodes,
 	}
-	_, err = chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}},
+	_, err = chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}},
 		WithRetry(retryOpts))
 	assert.NotNil(t, err, "expected error")
 	s, ok := status.FromError(err)
@@ -501,7 +501,7 @@ func TestDiscoveryGreylist(t *testing.T) {
 	testPeer1.ProcessProposalCalls = 0
 	testPeer1.Error = status.New(status.EndorserServerStatus, int32(common.Status_SERVICE_UNAVAILABLE), "test", nil)
 	// Try again
-	_, err = chClient.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}},
+	_, err = chClient.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}},
 		WithRetry(retryOpts))
 	assert.NotNil(t, err, "expected error")
 	s, ok = status.FromError(err)

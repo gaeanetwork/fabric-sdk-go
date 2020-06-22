@@ -19,7 +19,7 @@ func Example() {
 		fmt.Println("failed to create client")
 	}
 
-	response, err := c.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("data")}})
+	response, err := c.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("data")}})
 	if err != nil {
 		fmt.Printf("failed to query chaincode: %s\n", err)
 	}
@@ -53,7 +53,7 @@ func ExampleClient_Query() {
 		fmt.Println("failed to create client")
 	}
 
-	response, err := c.Query(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
+	response, err := c.Query(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("b")}})
 	if err != nil {
 		fmt.Printf("failed to query chaincode: %s\n", err)
 	}
@@ -71,7 +71,7 @@ func ExampleClient_Execute() {
 		fmt.Println("failed to create client")
 	}
 
-	_, err = c.Execute(Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("move"), []byte("a"), []byte("b"), []byte("1")}})
+	_, err = c.Execute(&Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("move"), []byte("a"), []byte("b"), []byte("1")}})
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -105,7 +105,7 @@ func ExampleClient_InvokeHandler() {
 		fmt.Println("failed to create client")
 	}
 
-	response, err := c.InvokeHandler(&exampleHandler{}, Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("data")}})
+	response, err := c.InvokeHandler(&exampleHandler{}, &Request{ChaincodeID: "testCC", Fcn: "invoke", Args: [][]byte{[]byte("query"), []byte("data")}})
 	if err != nil {
 		fmt.Printf("failed to query chaincode: %s\n", err)
 	}

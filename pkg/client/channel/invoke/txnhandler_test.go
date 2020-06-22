@@ -17,13 +17,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pb "github.com/hyperledger/fabric-protos-go/peer"
 	txnmocks "github.com/hyperledger/fabric-sdk-go/pkg/client/common/mocks"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/errors/status"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/context"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
 	fcmocks "github.com/hyperledger/fabric-sdk-go/pkg/fab/mocks"
 	mspmocks "github.com/hyperledger/fabric-sdk-go/pkg/msp/test/mockmsp"
-	pb "github.com/hyperledger/fabric-protos-go/peer"
 )
 
 const (
@@ -334,7 +334,7 @@ func TestNewInvocationChain(t *testing.T) {
 		},
 	}
 
-	ccCalls := newInvocationChain(&RequestContext{Request: request})
+	ccCalls := newInvocationChain(&RequestContext{Request: &request})
 	require.Truef(t, len(ccCalls) == 2, "expecting 2 CC calls")
 	require.Equal(t, ccID1, ccCalls[0].ID)
 	require.Equal(t, ccID2, ccCalls[1].ID)
@@ -357,7 +357,7 @@ func TestNewInvocationChain(t *testing.T) {
 		},
 	}
 
-	ccCalls = newInvocationChain(&RequestContext{Request: request})
+	ccCalls = newInvocationChain(&RequestContext{Request: &request})
 	require.Truef(t, len(ccCalls) == 2, "expecting 2 CC calls")
 	require.Equal(t, ccID1, ccCalls[0].ID)
 	require.Equal(t, ccID2, ccCalls[1].ID)
@@ -416,7 +416,7 @@ func TestMergeInvocationChains(t *testing.T) {
 
 //prepareHandlerContexts prepares context objects for handlers
 func prepareRequestContext(request Request, opts Opts, t *testing.T) *RequestContext {
-	requestContext := &RequestContext{Request: request,
+	requestContext := &RequestContext{Request: &request,
 		Opts:     opts,
 		Response: Response{},
 		Ctx:      reqContext.Background(),

@@ -47,7 +47,7 @@ func (e *EndorsementHandler) Handle(requestContext *RequestContext, clientContex
 
 	transactionProposalResponses, proposal, err := createAndSendTransactionProposal(
 		clientContext.Transactor,
-		&requestContext.Request,
+		requestContext.Request,
 		peer.PeersToTxnProcessors(requestContext.Opts.Targets),
 		TxnHeaderOpts...,
 	)

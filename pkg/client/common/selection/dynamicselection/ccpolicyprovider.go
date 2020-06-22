@@ -136,7 +136,7 @@ func (dp *ccPolicyProvider) queryChaincode(ccID string, ccFcn string, ccArgs [][
 			Args:        ccArgs,
 		}
 
-		resp, err := client.Query(request, channel.WithTargets(peer))
+		resp, err := client.Query(&request, channel.WithTargets(peer))
 		if err != nil {
 			logger.Debugf("query peer '%s' returned error for ccID %s, Fcn %s: %s", peer.URL(), ccID, ccFcn, err)
 			queryErrors = append(queryErrors, err.Error())
